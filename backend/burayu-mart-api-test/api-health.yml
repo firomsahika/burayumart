@@ -1,0 +1,14 @@
+info:
+  name: api-health
+  type: http
+
+http:
+  method: GET
+  url: http://localhost:5000/api/v1/health
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

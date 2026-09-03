@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: burayumart-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: burayumart
+      POSTGRES_PASSWORD: burayumart_dev
+      POSTGRES_DB: burayumart
+    ports:
+      - "5432:5432"
+    volumes:
+      - burayumart_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  burayumart_postgres_data:
