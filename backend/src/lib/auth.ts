@@ -18,6 +18,12 @@ export const auth = betterAuth({
     ],
 
     trustedOrigins: [
-        "burayumart://",
+      "burayumart://",
+      // Expo development
+          "exp://**",
+
+          // Local development
+          "http://localhost:8081",
+          "http://localhost:5000",
     ],
 });

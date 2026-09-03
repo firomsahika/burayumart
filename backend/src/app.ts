@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 
 import { toNodeHandler } from "better-auth/node";
+import authRoutes from "./modules/auth/auth.routes";
 
 import { auth } from "./lib/auth";
 
@@ -39,8 +40,9 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 * Body parser
   */
 app.use(express.json());
-
 /**
+
+app.use("/api/v1/auth", authRoutes)
 
 * Health check
   */

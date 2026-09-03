@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { AppButton } from "@/components/common/AppButton";
 import {
     ArrowLeft,
     Check,
