@@ -1,3 +1,5 @@
+import type { SellerProfile } from "../../generated/prisma/client";
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -10,6 +12,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: AuthUser;
+      seller?: SellerProfile;
     }
   }
 }
