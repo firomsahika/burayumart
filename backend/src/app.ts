@@ -35,17 +35,10 @@ app.use(
   */
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
-/**
 
-* Body parser
-  */
 app.use(express.json());
-/**
 
-app.use("/api/v1/auth", authRoutes)
-
-* Health check
-  */
+ app.use("/api/v1/auth", authRoutes)
 app.get("/api/v1/health", (_req, res) => {
     res.json({
         success: true,

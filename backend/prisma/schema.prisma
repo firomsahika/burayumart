@@ -1,7 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// This is your Prisma schema file.
+// BurayuMart marketplace database
+// Prisma 7 + PostgreSQL
 
 generator client {
   provider = "prisma-client"
@@ -12,16 +11,35 @@ datasource db {
   provider = "postgresql"
 }
 
+/**
+ * |--------------------------------------------------------------------------
+ * | AUTHENTICATION
+ * |--------------------------------------------------------------------------
+ * | These models are managed by Better Auth.
+ * | Do not duplicate authentication logic in BurayuMart models.
+ * |--------------------------------------------------------------------------
+ */
+
 model User {
-  id            String    @id
+  id            String   @id
   name          String
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean  @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  // BurayuMart
+  sellerProfile SellerProfile?
+  addresses     Address[]
+  cart          Cart?
+  orders        Order[]
+  reviews       Review[]
+  wishlistItems WishlistItem[]
+  notifications Notification[]
 
   @@unique([email])
   @@map("user")
@@ -36,20 +54,24 @@ model Session {
   ipAddress String?
   userAgent String?
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([token])
   @@index([userId])
+  @@index([expiresAt])
   @@map("session")
 }
 
 model Account {
-  id                    String    @id
-  issuer                String
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String @id
+  issuer     String
+  accountId  String
+  providerId String
+  userId     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -57,8 +79,9 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([issuer, accountId], map: "account_issuer_accountId_uidx")
   @@index([userId])
@@ -74,5 +97,643 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@index([identifier])
+  @@index([expiresAt])
   @@map("verification")
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | SELLERS
+ * |--------------------------------------------------------------------------
+ */
+
+model SellerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  storeName   String
+  description String?
+  phone       String?
+  logo        String?
+
+  status SellerStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  products Product[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum SellerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | ADDRESSES
+ * |--------------------------------------------------------------------------
+ */
+
+model Address {
+  id     String @id @default(cuid())
+  userId String
+
+  label    String
+  fullName String
+  phone    String
+
+  city     String
+  subCity  String?
+  woreda   String?
+  kebele   String?
+  street   String?
+  landmark String?
+
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orders Order[]
+
+  @@index([userId])
+  @@index([userId, isDefault])
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | CATEGORIES
+ * |--------------------------------------------------------------------------
+ */
+
+model Category {
+  id String @id @default(cuid())
+
+  name  String
+  slug  String  @unique
+  image String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@index([isActive])
+  @@index([isActive, createdAt])
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | PRODUCTS
+ * |--------------------------------------------------------------------------
+ */
+
+model Product {
+  id String @id @default(cuid())
+
+  sellerId   String
+  categoryId String
+
+  name        String
+  slug        String @unique
+  description String
+
+  /**
+   * Optional marketplace information
+   */
+  sku       String?
+  brand     String?
+  condition ProductCondition @default(NEW)
+
+  /**
+   * Money should never use Float.
+   * Decimal gives us reliable monetary calculations.
+   */
+  price          Decimal  @db.Decimal(12, 2)
+  compareAtPrice Decimal? @db.Decimal(12, 2)
+
+  /**
+   * Inventory
+   */
+  quantity Int @default(0)
+
+  /**
+   * Optional minimum order quantity.
+   */
+  minimumOrderQuantity Int @default(1)
+
+  status ProductStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seller SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  images        ProductImage[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  reviews       Review[]
+  wishlistItems WishlistItem[]
+
+  @@unique([sellerId, sku])
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([status, createdAt])
+  @@index([categoryId, status])
+  @@index([sellerId, status])
+}
+
+enum ProductCondition {
+  NEW
+  LIKE_NEW
+  USED
+  REFURBISHED
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING_REVIEW
+  AVAILABLE
+  OUT_OF_STOCK
+  REJECTED
+  ARCHIVED
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | PRODUCT IMAGES
+ * |--------------------------------------------------------------------------
+ */
+
+model ProductImage {
+  id String @id @default(cuid())
+
+  productId String
+
+  url      String
+  publicId String?
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, position])
+  @@index([productId])
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | CART
+ * |--------------------------------------------------------------------------
+ */
+
+model Cart {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items CartItem[]
+}
+
+model CartItem {
+  id String @id @default(cuid())
+
+  cartId    String
+  productId String
+
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@index([productId])
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | WISHLIST
+ * |--------------------------------------------------------------------------
+ */
+
+model WishlistItem {
+  id String @id @default(cuid())
+
+  userId    String
+  productId String
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | ORDERS
+ * |--------------------------------------------------------------------------
+ */
+
+model Order {
+  id String @id @default(cuid())
+
+  /**
+   * Human-readable order reference.
+   * Example: BM-20260904-7F3K2
+   */
+  orderNumber String @unique
+
+  userId String
+
+  /**
+   * Address used at checkout.
+   * We keep the relation, but order delivery information
+   * should also be snapshotted in the order for historical accuracy.
+   */
+  addressId String?
+
+  status OrderStatus @default(PENDING)
+
+  /**
+   * Monetary snapshot.
+   */
+  subtotal    Decimal @db.Decimal(12, 2)
+  deliveryFee Decimal @default(0) @db.Decimal(12, 2)
+  discount    Decimal @default(0) @db.Decimal(12, 2)
+  total       Decimal @db.Decimal(12, 2)
+
+  /**
+   * Marketplace commission.
+   * This allows the platform to calculate its revenue
+   * without changing historical orders.
+   */
+  platformFee Decimal @default(0) @db.Decimal(12, 2)
+
+  /**
+   * Address snapshot.
+   */
+  shippingFullName String
+  shippingPhone    String
+  shippingCity     String
+  shippingSubCity  String?
+  shippingWoreda   String?
+  shippingKebele   String?
+  shippingStreet   String?
+  shippingLandmark String?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  address Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+
+  items    OrderItem[]
+  payment  Payment?
+  delivery Delivery?
+
+  @@index([userId])
+  @@index([status])
+  @@index([userId, status])
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  READY_FOR_PICKUP
+  PICKED_UP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  RETURN_REQUESTED
+  RETURNED
+  REFUNDED
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | ORDER ITEMS
+ * |--------------------------------------------------------------------------
+ */
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  orderId   String
+  productId String
+
+  /**
+   * Product information is snapshotted here.
+   * If the seller later changes the product name/price,
+   * the historical order remains correct.
+   */
+  productName String
+  productSku  String?
+
+  unitPrice Decimal @db.Decimal(12, 2)
+  quantity  Int
+
+  subtotal Decimal @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | PAYMENTS
+ * |--------------------------------------------------------------------------
+ */
+
+model Payment {
+  id String @id @default(cuid())
+
+  orderId String @unique
+
+  method PaymentMethod
+  status PaymentStatus @default(PENDING)
+
+  amount Decimal @db.Decimal(12, 2)
+
+  provider          String?
+  providerReference String?
+
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  transactions PaymentTransaction[]
+
+  @@index([status])
+  @@index([providerReference])
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  TELEBIRR
+  CHAPA
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | PAYMENT TRANSACTIONS
+ * |--------------------------------------------------------------------------
+ * | One payment can have multiple provider attempts.
+ * |--------------------------------------------------------------------------
+ */
+
+model PaymentTransaction {
+  id String @id @default(cuid())
+
+  paymentId String
+
+  reference String @unique
+
+  provider String
+
+  status PaymentTransactionStatus @default(PENDING)
+
+  amount Decimal @db.Decimal(12, 2)
+
+  rawResponse String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([status])
+  @@index([provider])
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | DELIVERY
+ * |--------------------------------------------------------------------------
+ */
+
+model Delivery {
+  id String @id @default(cuid())
+
+  orderId String @unique
+
+  status DeliveryStatus @default(PENDING)
+
+  /**
+   * Delivery information.
+   */
+  deliveryFee Decimal @default(0) @db.Decimal(12, 2)
+
+  courierName  String?
+  courierPhone String?
+
+  estimatedDeliveryAt DateTime?
+  pickedUpAt          DateTime?
+  deliveredAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  tracking DeliveryTracking[]
+
+  @@index([status])
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | DELIVERY TRACKING
+ * |--------------------------------------------------------------------------
+ */
+
+model DeliveryTracking {
+  id String @id @default(cuid())
+
+  deliveryId String
+
+  status DeliveryStatus
+
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+
+  note String?
+
+  createdAt DateTime @default(now())
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId])
+  @@index([deliveryId, createdAt])
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | REVIEWS
+ * |--------------------------------------------------------------------------
+ */
+
+model Review {
+  id String @id @default(cuid())
+
+  userId    String
+  productId String
+  orderId   String?
+
+  rating  Int
+  comment String?
+
+  status ReviewStatus @default(PUBLISHED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+  @@index([productId, status])
+  @@index([userId])
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+  FLAGGED
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | NOTIFICATIONS
+ * |--------------------------------------------------------------------------
+ */
+
+model Notification {
+  id String @id @default(cuid())
+
+  userId String
+
+  type NotificationType
+
+  title   String
+  message String
+
+  /**
+   * Optional deep-link target.
+   * Example:
+   * /orders/BM-20260904-7F3K2
+   */
+  actionUrl String?
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+enum NotificationType {
+  ORDER_CREATED
+  ORDER_CONFIRMED
+  ORDER_PROCESSING
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+
+  SELLER_APPLICATION
+  SELLER_APPROVED
+  SELLER_REJECTED
+
+  PRODUCT_APPROVED
+  PRODUCT_REJECTED
+
+  REVIEW_RECEIVED
+  SYSTEM
 }
