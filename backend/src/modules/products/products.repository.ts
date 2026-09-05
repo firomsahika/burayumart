@@ -1,6 +1,14 @@
 import { prisma } from "../../lib/prisma";
 import { Prisma } from "../../generated/prisma/client";
 import type { CreateProductInput, UpdateProductInput } from "./products.types";
+import { ProductStatus } from "../../generated/prisma/client";
+import { ProductCondition } from "../../generated/prisma/client";
+
+import type {
+  ProductImageInput,
+  CreateProductRepositoryInput
+} from "./products.types";
+
 
 export async function findCategoryById(
   categoryId: string
@@ -14,37 +22,85 @@ export async function findCategoryById(
 
 export async function createProduct(
   sellerId: string,
-  data: CreateProductInput
+  data: CreateProductRepositoryInput
 ) {
-  const baseSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
-  const createData: Prisma.ProductCreateInput = {
-    seller: { connect: { id: sellerId } },
-    category: { connect: { id: data.categoryId } },
-    name: data.name,
-    slug: baseSlug,
-    description: data.description ?? "",
-    price: data.price,
-    quantity: data.quantity,
-    minimumOrderQuantity: data.minimumOrderQuantity ?? 1,
-    status: "PENDING_REVIEW",
-  };
+  return prisma.$transaction(async (tx) => {
+    const productData = {
+      sellerId,
+      categoryId: data.categoryId,
+      name: data.name,
+      slug: data.slug,
 
-  if (data.sku !== undefined) createData.sku = data.sku;
-  if (data.brand !== undefined) createData.brand = data.brand;
-  if (data.condition !== undefined) createData.condition = data.condition;
-  if (data.compareAtPrice !== undefined) createData.compareAtPrice = data.compareAtPrice;
+      ...(data.description !== undefined
+        ? {
+          description: data.description,
+        }
+        : {}),
 
-  return prisma.product.create({
-    data: createData,
+      ...(data.sku !== undefined
+        ? {
+          sku: data.sku,
+        }
+        : {}),
 
-    include: {
-      category: true,
-      images: {
-        orderBy: {
-          position: "asc",
+      ...(data.brand !== undefined
+        ? {
+          brand: data.brand,
+        }
+        : {}),
+
+      // Prisma requires condition because
+      // Product.condition is not nullable.
+      condition:
+        data.condition ?? "NEW",
+
+      price: data.price,
+
+      ...(data.compareAtPrice !== undefined
+        ? {
+          compareAtPrice:
+            data.compareAtPrice,
+        }
+        : {}),
+
+      quantity: data.quantity,
+
+      minimumOrderQuantity:
+        data.minimumOrderQuantity ?? 1,
+
+      status: "PENDING_REVIEW" as const,
+    };
+
+    const product =
+      await tx.product.create({
+        data: productData,
+      });
+
+    if (data.images?.length) {
+      await tx.productImage.createMany({
+        data: data.images.map((image) => ({
+          productId: product.id,
+          url: image.url,
+          publicId: image.publicId,
+          position: image.position,
+        })),
+      });
+    }
+
+    return tx.product.findUniqueOrThrow({
+      where: {
+        id: product.id,
+      },
+      include: {
+        category: true,
+        seller: true,
+        images: {
+          orderBy: {
+            position: "asc",
+          },
         },
       },
-    },
+    });
   });
 }
 
@@ -235,5 +291,103 @@ export async function countProductImages(
     where: {
       productId,
     },
+  });
+}
+
+export async function updateProductStatus(
+  productId: string,
+  status: ProductStatus
+) {
+  return prisma.product.update({
+    where: {
+      id: productId,
+    },
+    data: {
+      status,
+    },
+    include: {
+      category: true,
+      seller: true,
+      images: {
+        orderBy: {
+          position: "asc",
+        },
+      },
+    },
+  });
+}
+
+export async function updateProductInventory(
+  productId: string,
+  quantity: number,
+  status?: ProductStatus
+) {
+  return prisma.product.update({
+    where: {
+      id: productId,
+    },
+    data: {
+      quantity,
+      ...(status !== undefined && {
+        status,
+      }),
+    },
+    include: {
+      category: true,
+      seller: true,
+      images: {
+        orderBy: {
+          position: "asc",
+        },
+      },
+    },
+  });
+}
+
+export async function findProductBySlug(
+  sellerId: string,
+  slug: string
+) {
+  return prisma.product.findFirst({
+    where: {
+      sellerId,
+      slug,
+    },
+  });
+}
+
+export async function replaceProductImages(
+  productId: string,
+  images: ProductImageInput[]
+) {
+  return prisma.$transaction(async (tx) => {
+    // Delete existing images
+    await tx.productImage.deleteMany({
+      where: {
+        productId,
+      },
+    });
+
+    // Create new images
+    if (images.length > 0) {
+      await tx.productImage.createMany({
+        data: images.map((image) => ({
+          productId,
+          url: image.url,
+          publicId: image.publicId,
+          position: image.position,
+        })),
+      });
+    }
+
+    // Return the new image list
+    return tx.productImage.findMany({
+      where: {
+        productId,
+      },
+      orderBy: {
+        position: "asc",
+      },
+    });
   });
 }

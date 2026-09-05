@@ -210,37 +210,27 @@ model Product {
   categoryId String
 
   name        String
-  slug        String @unique
-  description String
+  slug        String
+  description String?
 
-  /**
-   * Optional marketplace information
-   */
   sku       String?
   brand     String?
   condition ProductCondition @default(NEW)
 
-  /**
-   * Money should never use Float.
-   * Decimal gives us reliable monetary calculations.
-   */
   price          Decimal  @db.Decimal(12, 2)
   compareAtPrice Decimal? @db.Decimal(12, 2)
 
-  /**
-   * Inventory
-   */
-  quantity Int @default(0)
+  quantity        Int     @default(0)
+  rejectionReason String?
 
-  /**
-   * Optional minimum order quantity.
-   */
   minimumOrderQuantity Int @default(1)
 
   status ProductStatus @default(DRAFT)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  reviewedAt DateTime?
+  reviewedBy String?
 
   seller SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
 
@@ -252,6 +242,7 @@ model Product {
   reviews       Review[]
   wishlistItems WishlistItem[]
 
+  @@unique([sellerId, slug])
   @@unique([sellerId, sku])
   @@index([sellerId])
   @@index([categoryId])
@@ -289,8 +280,8 @@ model ProductImage {
   productId String
 
   url      String
-  publicId String?
-  position Int     @default(0)
+  publicId String
+  position Int    @default(0)
 
   createdAt DateTime @default(now())
 

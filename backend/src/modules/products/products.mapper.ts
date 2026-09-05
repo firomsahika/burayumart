@@ -1,12 +1,9 @@
 export function mapProduct(product: any) {
     return {
         id: product.id,
-
         name: product.name,
         slug: product.slug,
-
         description: product.description,
-
         sku: product.sku,
         brand: product.brand,
         condition: product.condition,
@@ -22,6 +19,10 @@ export function mapProduct(product: any) {
 
         minimumOrderQuantity:
             product.minimumOrderQuantity,
+
+        inStock:
+            product.status === "AVAILABLE" &&
+            product.quantity > 0,
 
         status: product.status,
 
@@ -42,12 +43,14 @@ export function mapProduct(product: any) {
             : undefined,
 
         images:
-            product.images?.map((image: any) => ({
-                id: image.id,
-                url: image.url,
-                publicId: image.publicId,
-                position: image.position,
-            })) ?? [],
+            product.images?.map(
+                (image: any) => ({
+                    id: image.id,
+                    url: image.url,
+                    publicId: image.publicId,
+                    position: image.position,
+                })
+            ) ?? [],
 
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,

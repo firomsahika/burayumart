@@ -13,6 +13,11 @@ import { getRequiredParam } from "../../helpers/get-params";
 
 import * as productsService from "./products.services";
 import { mapProduct } from "./products.mapper";
+import {
+    updateInventorySchema,
+} from "./products.schema";
+
+
 
 interface ProductIdParams {
     id: string;
@@ -182,6 +187,109 @@ export async function getMyProductImages(
 
         return res.status(200).json({
             success: true,
+            data: {
+                images,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function resubmitProduct(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const productId = getRequiredParam(
+            req.params.id,
+            "product ID"
+        );
+
+        const product =
+            await productsService.resubmitProduct(
+                req.seller!.id,
+                productId
+            );
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Product resubmitted for review successfully",
+            data: {
+                product: mapProduct(product),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateInventory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const productId = getRequiredParam(
+            req.params.id,
+            "product ID"
+        );
+
+        const data = updateInventorySchema.parse(
+            req.body
+        );
+
+        const product =
+            await productsService.updateProductInventory(
+                req.seller!.id,
+                productId,
+                data.quantity
+            );
+
+        return res.status(200).json({
+            success: true,
+            message: "Product inventory updated successfully",
+            data: {
+                product: mapProduct(product),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function replaceProductImages(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const productId =
+            getRequiredParam(
+                req.params.id,
+                "product ID"
+            );
+
+        const data =
+            updateProductSchema
+                .pick({
+                    images: true,
+                })
+                .parse(req.body);
+
+        const images =
+            await productsService.replaceMyProductImages(
+                req.seller!.id,
+                productId,
+                data.images ?? []
+            );
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Product images updated successfully",
             data: {
                 images,
             },

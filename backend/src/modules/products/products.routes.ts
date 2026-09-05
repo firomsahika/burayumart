@@ -55,5 +55,19 @@ router.get(
     productsController.getMyProductImages
 );
 
+router.patch(
+    "/seller/me/:id/resubmit",
+    requireSeller,
+    requireApprovedSeller,
+    productsController.resubmitProduct
+);
+
+router.patch(
+    "/seller/me/:id/inventory",
+    requireSeller,
+    requireApprovedSeller,
+    productsController.updateInventory
+);
+
 export default router;
 
