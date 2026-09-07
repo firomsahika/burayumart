@@ -8,6 +8,7 @@ import usersRoutes from "./modules/users/users.routes";
 import sellersRoutes from "./modules/sellers/sellers.routes"
 import productRoutes from "./modules/products/products.routes"
 import uploadRoutes from "./modules/uploads/uploads.routes"
+import categoriesRoutes from "./modules/categories/categories.routes"
 
 import { auth } from "./lib/auth";
 import { errorMiddleware } from "./middleware/error.middleware";
@@ -36,6 +37,7 @@ app.use("/api/v1/users", usersRoutes)
 app.use("/api/v1/sellers", sellersRoutes)
 app.use("/api/v1/products", productRoutes)
 app.use("/api/v1/uploads", uploadRoutes)
+app.use("/api/v1/categories", categoriesRoutes)
 
 
 
