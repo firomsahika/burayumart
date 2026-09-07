@@ -19,8 +19,7 @@ export async function createProduct(
     data: CreateProductInput
 ) {
     // 1. Validate category
-    const category =
-        await productsRepository.findCategoryById(
+    const category = await productsRepository.findCategoryById(
             data.categoryId
         );
 
