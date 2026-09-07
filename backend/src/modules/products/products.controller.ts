@@ -16,6 +16,7 @@ import { mapProduct } from "./products.mapper";
 import {
     updateInventorySchema,
 } from "./products.schema";
+import { success } from "zod";
 
 
 
@@ -49,6 +50,27 @@ export async function createProduct(
             message: "Product created successfully",
             data: {
                 product: mapProduct(product),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getAllProducts(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const products =
+            await productsService.getAllProducts();
+
+        return res.status(200).json({
+            success: true,
+            message: "Products fetched successfully",
+            data: {
+                products,
             },
         });
     } catch (error) {

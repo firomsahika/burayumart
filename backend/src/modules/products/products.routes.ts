@@ -13,7 +13,14 @@ import * as productsController from "./products.controller";
 
 const router = Router();
 
+
+
 router.use(requireAuth);
+
+router.get(
+    "/",
+    productsController.getAllProducts
+);
 
 router.post(
     "/",
@@ -21,6 +28,7 @@ router.post(
     requireApprovedSeller,
     productsController.createProduct
 );
+
 
 router.get(
     "/seller/me/:id",

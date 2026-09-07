@@ -10,6 +10,7 @@ import productRoutes from "./modules/products/products.routes"
 import uploadRoutes from "./modules/uploads/uploads.routes"
 import categoriesRoutes from "./modules/categories/categories.routes"
 import addressesRoutes from "./modules/addresses/addresses.routes"
+import cartsRoutes from "./modules/carts/carts.routes"
 
 import { auth } from "./lib/auth";
 import { errorMiddleware } from "./middleware/error.middleware";
@@ -40,6 +41,7 @@ app.use("/api/v1/products", productRoutes)
 app.use("/api/v1/uploads", uploadRoutes)
 app.use("/api/v1/categories", categoriesRoutes)
 app.use("/api/v1/addresses", addressesRoutes)
+app.use("/api/v1/carts", cartsRoutes)
 
 
 

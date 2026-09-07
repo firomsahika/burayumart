@@ -20,8 +20,8 @@ export async function createProduct(
 ) {
     // 1. Validate category
     const category = await productsRepository.findCategoryById(
-            data.categoryId
-        );
+        data.categoryId
+    );
 
     if (!category || !category.isActive) {
         throw new AppError(
@@ -72,7 +72,7 @@ export async function createProduct(
     const product =
         await productsRepository.createProduct(
             sellerId,
-            {...data, slug,}
+            { ...data, slug, }
         );
 
     // 5. Return the product that was created
@@ -80,6 +80,20 @@ export async function createProduct(
     // Images are already created inside the repository
     // transaction, so we don't need to create them here.
     return product;
+}
+
+export async function getAllProducts() {
+    const products = await productsRepository.findAllAvailableProducts();
+
+    if (!products) {
+        throw new AppError(
+            "Products not found",
+            404,
+            "PRODUCTS_NOT_FOUND"
+        )
+    }
+
+    return products;
 }
 
 export async function getMyProduct(

@@ -104,6 +104,8 @@ export async function createProduct(
   });
 }
 
+
+
 export async function findProductById(
   productId: string
 ) {
@@ -124,6 +126,29 @@ export async function findProductById(
       },
     },
   });
+}
+
+export async function findAllAvailableProducts() {
+    return prisma.product.findMany({
+        where: {
+            status: "AVAILABLE",
+            category: {
+                isActive: true,
+            },
+        },
+        include: {
+            images: {
+                orderBy: {
+                    position: "asc",
+                },
+            },
+            category: true,
+            seller: true,
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
 }
 
 export async function findSellerProductById(

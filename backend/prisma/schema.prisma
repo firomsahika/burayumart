@@ -361,58 +361,22 @@ model WishlistItem {
 model Order {
   id String @id @default(cuid())
 
-  /**
-   * Human-readable order reference.
-   * Example: BM-20260904-7F3K2
-   */
-  orderNumber String @unique
-
-  userId String
-
-  /**
-   * Address used at checkout.
-   * We keep the relation, but order delivery information
-   * should also be snapshotted in the order for historical accuracy.
-   */
-  addressId String?
+  userId    String
+  addressId String
 
   status OrderStatus @default(PENDING)
 
-  /**
-   * Monetary snapshot.
-   */
   subtotal    Decimal @db.Decimal(12, 2)
-  deliveryFee Decimal @default(0) @db.Decimal(12, 2)
-  discount    Decimal @default(0) @db.Decimal(12, 2)
+  deliveryFee Decimal @db.Decimal(12, 2)
   total       Decimal @db.Decimal(12, 2)
 
-  /**
-   * Marketplace commission.
-   * This allows the platform to calculate its revenue
-   * without changing historical orders.
-   */
-  platformFee Decimal @default(0) @db.Decimal(12, 2)
-
-  /**
-   * Address snapshot.
-   */
-  shippingFullName String
-  shippingPhone    String
-  shippingCity     String
-  shippingSubCity  String?
-  shippingWoreda   String?
-  shippingKebele   String?
-  shippingStreet   String?
-  shippingLandmark String?
-
-  notes String?
+  customerNote String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-
-  address Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  address Address @relation(fields: [addressId], references: [id], onDelete: Restrict)
 
   items    OrderItem[]
   payment  Payment?
@@ -420,24 +384,17 @@ model Order {
 
   @@index([userId])
   @@index([status])
-  @@index([userId, status])
   @@index([createdAt])
-  @@index([status, createdAt])
+  @@index([userId, status])
 }
 
 enum OrderStatus {
   PENDING
   CONFIRMED
   PROCESSING
-  READY_FOR_PICKUP
-  PICKED_UP
-  OUT_FOR_DELIVERY
+  SHIPPED
   DELIVERED
-  COMPLETED
   CANCELLED
-  RETURN_REQUESTED
-  RETURNED
-  REFUNDED
 }
 
 /**
@@ -452,23 +409,21 @@ model OrderItem {
   orderId   String
   productId String
 
-  /**
-   * Product information is snapshotted here.
-   * If the seller later changes the product name/price,
-   * the historical order remains correct.
-   */
-  productName String
-  productSku  String?
+  quantity Int
 
+  // Price at the moment of checkout.
+  // We must NOT rely on Product.price later.
   unitPrice Decimal @db.Decimal(12, 2)
-  quantity  Int
 
-  subtotal Decimal @db.Decimal(12, 2)
+  totalPrice Decimal @db.Decimal(12, 2)
+
+  // Snapshot information
+  productName  String
+  productImage String?
 
   createdAt DateTime @default(now())
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
