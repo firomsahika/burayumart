@@ -20,6 +20,11 @@ datasource db {
  * |--------------------------------------------------------------------------
  */
 
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
 model User {
   id            String   @id
   name          String
@@ -28,6 +33,8 @@ model User {
   image         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  role UserRole @default(CUSTOMER)
 
   sessions Session[]
   accounts Account[]
