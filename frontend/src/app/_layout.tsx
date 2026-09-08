@@ -9,13 +9,14 @@ import {
   OnboardingProvider,
   useOnboarding,
 } from "../providers/OnboardingProvider";
+import { QueryProvider } from "@/providers/QueryProvider";
 
 import { AuthLoadingScreen } from "../components/common/AuthLoadingScreen";
 
 function RootNavigator() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
-  const { hasCompletedOnboarding , isLoading:onboardingLoading, } = useOnboarding();
+  const { hasCompletedOnboarding, isLoading: onboardingLoading, } = useOnboarding();
 
   if (authLoading || onboardingLoading) {
     return <AuthLoadingScreen />;
@@ -52,10 +53,12 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <OnboardingProvider>
-        <RootNavigator />
-      </OnboardingProvider>
-    </AuthProvider>
+    <QueryProvider>
+      <AuthProvider>
+        <OnboardingProvider>
+          <RootNavigator />
+        </OnboardingProvider>
+      </AuthProvider>
+    </QueryProvider>
   );
 }

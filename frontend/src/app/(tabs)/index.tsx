@@ -14,8 +14,39 @@ import {
 
 import { Screen } from "../../components/common/screen";
 import { theme } from "../../constants/theme";
+import { useProducts } from "@/features/products/products.hooks";
+
 
 export default function HomeScreen() {
+
+    const { data, isLoading, isError, error } = useProducts();
+
+    if (isLoading) {
+        return (
+            <View>
+                <Text>
+                    Loading Products
+                </Text>
+            </View>
+        )
+    }
+
+    if (isError) {
+        return (
+            <View>
+                <Text>
+                    Failed to load Products
+                </Text>
+
+                <Text>
+                    {error instanceof Error
+                        ? error.message : "unknown Error"
+                    }
+                </Text>
+            </View>
+        )
+    }
+
     return (<Screen> <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
@@ -25,7 +56,15 @@ export default function HomeScreen() {
 
         <Text style={styles.name}>
             Welcome to BurayuMart
+
+            products: {data?.length ?? 0}
         </Text>
+
+        {data?.map((product) => (
+            <Text key={product.id}>
+                {product.name}
+            </Text>
+        ))}
     </View>
 
             <View style={styles.actions}>
