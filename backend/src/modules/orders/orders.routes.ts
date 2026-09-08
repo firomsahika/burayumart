@@ -4,27 +4,50 @@ import * as ordersController
     from "./orders.controller";
 
 import { requireAuth } from "../auth/auth.middleware";
+import { requireSeller } from "../sellers/seller.middleware";
+import { requireApprovedSeller } from "../sellers/seller.middleware";
+
 
 const router = Router();
 
 router.use(requireAuth);
 
-// Create order / checkout
+// Customer
 router.post(
     "/",
     ordersController.createOrder
 );
 
-// Customer order history
 router.get(
     "/",
     ordersController.getMyOrders
 );
 
-// Customer order details
 router.get(
     "/:id",
     ordersController.getMyOrderById
+);
+
+// Seller
+router.get(
+    "/seller/me",
+    requireSeller,
+    requireApprovedSeller,
+    ordersController.getSellerOrders
+);
+
+router.get(
+    "/seller/me/:id",
+    requireSeller,
+    requireApprovedSeller,
+    ordersController.getSellerOrderById
+);
+
+router.patch(
+    "/seller/me/:id/status",
+    requireSeller,
+    requireApprovedSeller,
+    ordersController.updateSellerOrderStatus
 );
 
 export default router;

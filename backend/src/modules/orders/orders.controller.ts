@@ -10,6 +10,7 @@ import * as ordersService
 import {
     createOrderSchema,
     orderIdParamsSchema,
+    updateOrderStatusSchema,
 } from "./orders.schema";
 
 import {
@@ -93,6 +94,98 @@ export async function getMyOrderById(
             success: true,
             message:
                 "Order fetched successfully",
+            data: {
+                order: mapOrder(order),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getSellerOrders(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const orders =
+            await ordersService.getSellerOrders(
+                req.seller!.id
+            );
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Seller orders fetched successfully",
+            data: {
+                orders: orders.map(
+                    mapOrder
+                ),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getSellerOrderById(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const { id } =
+            orderIdParamsSchema.parse(
+                req.params
+            );
+
+        const order =
+            await ordersService.getSellerOrderById(
+                req.seller!.id,
+                id
+            );
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Seller order fetched successfully",
+            data: {
+                order: mapOrder(order),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateSellerOrderStatus(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const { id } =
+            orderIdParamsSchema.parse(
+                req.params
+            );
+
+        const { status } =
+            updateOrderStatusSchema.parse(
+                req.body
+            );
+
+        const order =
+            await ordersService.updateSellerOrderStatus(
+                req.seller!.id,
+                id,
+                status
+            );
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Order status updated successfully",
             data: {
                 order: mapOrder(order),
             },

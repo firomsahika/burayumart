@@ -1,8 +1,10 @@
 import { AppError } from "../../middleware/app-error";
+import { prisma } from "../../lib/prisma"
 import * as ordersRepository from "./orders.repository";
 import type {
     CreateOrderInput,
 } from "./orders.types";
+import type { OrderStatus } from "../../generated/prisma/enums";
 
 
 
@@ -111,3 +113,125 @@ export async function getMyOrderById(
     return order;
 
 }
+
+export async function getSellerOrders(
+    sellerId: string
+) {
+    return ordersRepository.findSellerOrders(
+        sellerId
+    );
+}
+
+export async function getSellerOrderById(
+    sellerId: string,
+    orderId: string
+) {
+    const order =
+        await ordersRepository.findSellerOrderById(
+            sellerId,
+            orderId
+        );
+
+    if (!order) {
+        throw new AppError(
+            "Order not found",
+            404,
+            "ORDER_NOT_FOUND"
+        );
+    }
+
+    return order;
+}
+
+export async function updateSellerOrderStatus(
+    sellerId: string,
+    orderId: string,
+    status: OrderStatus
+) {
+    const order =
+        await ordersRepository.findSellerOrderById(
+            sellerId,
+            orderId
+        );
+
+    if (!order) {
+        throw new AppError(
+            "Order not found",
+            404,
+            "ORDER_NOT_FOUND"
+        );
+    }
+
+    const allowedTransitions: Record<
+        OrderStatus,
+        OrderStatus[]
+    > = {
+        PENDING: [
+            "CONFIRMED",
+            "CANCELLED",
+        ],
+
+        CONFIRMED: [
+            "PROCESSING",
+            "CANCELLED",
+        ],
+
+        PROCESSING: [
+            "SHIPPED",
+            "CANCELLED",
+        ],
+
+        SHIPPED: [
+            "DELIVERED",
+        ],
+
+        DELIVERED: [],
+
+        CANCELLED: [],
+    };
+
+    if (
+        !allowedTransitions[
+            order.status
+        ].includes(status)
+    ) {
+        throw new AppError(
+            `Cannot change order status from ${order.status} to ${status}`,
+            400,
+            "INVALID_ORDER_STATUS_TRANSITION"
+        );
+    }
+
+    return ordersRepository.updateOrderStatus(
+        orderId,
+        status
+    );
+}
+
+const allowedTransitions: Record<
+    string,
+    string[]
+> = {
+    PENDING: [
+        "CONFIRMED",
+        "CANCELLED",
+    ],
+
+    CONFIRMED: [
+        "PROCESSING",
+        "CANCELLED",
+    ],
+
+    PROCESSING: [
+        "SHIPPED",
+        "CANCELLED",
+    ],
+
+    SHIPPED: [
+        "DELIVERED",
+    ],
+
+    DELIVERED: [],
+
+    CANCELLED: [],
+};

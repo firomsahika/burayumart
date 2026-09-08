@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { OrderStatus } from "../../generated/prisma/enums";
 
 export async function findUserCart(
     userId: string
@@ -91,7 +92,7 @@ export async function createOrderFromCart(
                             Number(
                                 item.product.price
                             ) *
-                                item.quantity
+                            item.quantity
                         );
                     },
                     0
@@ -268,6 +269,130 @@ export async function findUserOrderById(
                                 take: 1,
                             },
                             seller: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+}
+
+export async function findSellerOrders(
+    sellerId: string
+) {
+    return prisma.order.findMany({
+        where: {
+            items: {
+                some: {
+                    product: {
+                        sellerId,
+                    },
+                },
+            },
+        },
+
+        include: {
+            address: true,
+
+            items: {
+                where: {
+                    product: {
+                        sellerId,
+                    },
+                },
+
+                include: {
+                    product: {
+                        include: {
+                            images: {
+                                orderBy: {
+                                    position: "asc",
+                                },
+                                take: 1,
+                            },
+                        },
+                    },
+                },
+            },
+        },
+
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+}
+
+export async function findSellerOrderById(
+    sellerId: string,
+    orderId: string
+) {
+    return prisma.order.findFirst({
+        where: {
+            id: orderId,
+
+            items: {
+                some: {
+                    product: {
+                        sellerId,
+                    },
+                },
+            },
+        },
+
+        include: {
+            address: true,
+
+            items: {
+                where: {
+                    product: {
+                        sellerId,
+                    },
+                },
+
+                include: {
+                    product: {
+                        include: {
+                            images: {
+                                orderBy: {
+                                    position: "asc",
+                                },
+                                take: 1,
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+}
+
+export async function updateOrderStatus(
+    orderId: string,
+    status: OrderStatus
+) {
+    return prisma.order.update({
+        where: {
+            id: orderId,
+        },
+
+        data: {
+            status,
+            updatedAt: new Date(),
+        },
+
+        include: {
+            address: true,
+
+            items: {
+                include: {
+                    product: {
+                        include: {
+                            images: {
+                                orderBy: {
+                                    position: "asc",
+                                },
+                                take: 1,
+                            },
                         },
                     },
                 },
