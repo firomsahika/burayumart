@@ -15,17 +15,20 @@ import {
 import { Screen } from "../../components/common/screen";
 import { theme } from "../../constants/theme";
 import { useProducts } from "@/features/products/products.hooks";
+import { useCurrentUser } from "@/features/auth/auth.hooks";
 
 
 export default function HomeScreen() {
 
-    const { data, isLoading, isError, error } = useProducts();
+    // const { data, isLoading, isError, error } = useProducts();
+    const { data, isLoading, isError, error } = useCurrentUser();
+
 
     if (isLoading) {
         return (
             <View>
                 <Text>
-                    Loading Products
+                    Loading Profile....
                 </Text>
             </View>
         )
@@ -35,7 +38,7 @@ export default function HomeScreen() {
         return (
             <View>
                 <Text>
-                    Failed to load Products
+                    Failed to load profile
                 </Text>
 
                 <Text>
@@ -57,14 +60,17 @@ export default function HomeScreen() {
         <Text style={styles.name}>
             Welcome to BurayuMart
 
-            products: {data?.length ?? 0}
+            {data?.user.name}
         </Text>
 
-        {data?.map((product) => (
+        {/* {data?.map((product) => (
             <Text key={product.id}>
                 {product.name}
+
+                <Text>{product.price}</Text>
             </Text>
-        ))}
+
+        ))} */}
     </View>
 
             <View style={styles.actions}>
